@@ -77,8 +77,6 @@ class LlamaConfig(PretrainedConfig):
             relevant if `config.is_decoder=True`.
         tie_word_embeddings(`bool`, *optional*, defaults to `False`):
             Whether to tie weight embeddings
-        rope_theta (`float`, *optional*, defaults to 10000.0):
-            The base period of the RoPE embeddings.
         rope_scaling (`Dict`, *optional*):
             Dictionary containing the scaling configuration for the RoPE embeddings. Currently supports two scaling
             strategies: linear and dynamic. Their scaling factor must be an float greater than 1. The expected format
@@ -118,13 +116,13 @@ class LlamaConfig(PretrainedConfig):
         initializer_range=0.02,
         rms_norm_eps=1e-6,
         use_cache=True,
-        pad_token_id=None,
+        pad_token_id=0,
         bos_token_id=1,
         eos_token_id=2,
         pretraining_tp=1,
         tie_word_embeddings=False,
-        rope_theta=10000.0,
         rope_scaling=None,
+        use_flash_attention=False,
         **kwargs,
     ):
         self.vocab_size = vocab_size
@@ -144,9 +142,15 @@ class LlamaConfig(PretrainedConfig):
         self.rms_norm_eps = rms_norm_eps
         self.pretraining_tp = pretraining_tp
         self.use_cache = use_cache
-        self.rope_theta = rope_theta
         self.rope_scaling = rope_scaling
         self._rope_scaling_validation()
+        self.use_flash_attention = use_flash_attention
+        if self.use_flash_attention:
+            try:
+                from flash_attn.flash_attn_interface import flash_attn_varlen_func
+                from einops import rearrange
+            except:
+                raise ValueError("`use_flash_attention` requires Flash Attention 2+ and einops.\nTry `pip install einops` and installing Flash Attention from from https://github.com/Dao-AILab/flash-attention")
 
         super().__init__(
             pad_token_id=pad_token_id,
